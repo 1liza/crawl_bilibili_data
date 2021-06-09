@@ -1,0 +1,8 @@
+{
+    "python.pythonPath": "F:\\work_programs\\Anaconda\\envs\\crawler\\python.exe",
+    "code-runner.executorMap":{
+        "python": "set PYTHONIOENCODING=utf-8 && F:\\work_programs\\Anaconda\\envs\\crawler\\python.exe",
+        "code-runner.saveFileBeforeRun": true,
+        "code-runner.runInTerminal": true
+    }
+}
