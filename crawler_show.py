@@ -5,6 +5,8 @@ import numpy as np
 import sqlite3
 from PIL import Image
 
+# TODO：请求过于频繁被屏蔽
+
 conn = sqlite3.connect('data_li.db')
 user = {}
 for i in conn.execute("select mid,name from user order by id").fetchall():
