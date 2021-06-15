@@ -1,3 +1,5 @@
-import wordcloud as wc
+def test():
+    a=1
 
-print("ssssss")
+print(a)
+
