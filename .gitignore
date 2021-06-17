@@ -134,3 +134,4 @@ dmypy.json
 .tar.gz
 
 /word_cloud-master/
+test.py

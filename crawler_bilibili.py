@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 
 startid = 18224785
 user = [startid]
+proxies = []
 
 # 浏览器代理
 agents = [
@@ -80,10 +81,56 @@ agents = [
 ]
 
 
+def get_ip_list():
+    urlip = 'http://www.xiladaili.com/'
+    head_ip = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'zh-CN, zh, q=0.9',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Host': 'www.xiladaili.com',
+        'Pragma': 'no-cache',
+        'Referer': urlip,
+        'User-Agent': np.random.choice(agents)
+    }
+    html = requests.get(urlip, headers=head_ip).text
+    with open('html.txt', 'w', encoding='utf-8') as f:
+        f.write(html)
+    f.close()
+    soup = BeautifulSoup(html, 'html.parser')
+    ips = soup.find_all('tr')
+    ip_list = []
+    http_list = []
+    for i in range(1, len(ips)):
+        ip_info = ips[i]
+        tds = ip_info.find_all('td')
+        if (not tds) or len(tds) < 7:
+            continue
+        ip_list.append(tds[0].text)  # '113.237.3.178:9999'
+        http_list.append(tds[2].text)  # 'http' 'https' 'http,https'
+    ip_list = [ip_list, http_list]
+    return ip_list
+
+
+def get_random_ip():
+    global proxies
+    ip_list = get_ip_list()
+    for i in range(len(ip_list[0])):
+        if ('HTTPS' in ip_list[1][i]) and ('HTTP' in ip_list[1][i]):
+            proxies.append({'http': 'http://' + ip_list[0][i]})
+            proxies.append({'https': 'https://' + ip_list[0][i]})
+        elif 'HTTP' in ip_list[1][i]:
+            proxies.append({'http': 'http://' + ip_list[0][i]})
+        else:
+            proxies.append({'https': 'https://' + ip_list[0][i]})
+
+
 def create():
     # create data base
     global conn
-    conn = sqlite3.connect('data_li.db')
+    conn = sqlite3.connect('data_test.db')
     conn.execute("""
     create table if not exists user(
         id INTEGER PRIMARY KEY,
@@ -129,42 +176,9 @@ def save(result=[], master=0):
 
 
 def func(startid=0):
-
     # get ip from website http://www.xiladaili.com/
-    def get_ip_list():
-        urlip = 'http://www.xiladaili.com/'
-        head_ip = {
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN, zh, q=0.9',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'DNT': '1',
-            'Host': 'www.xiladaili.com',
-            'Pragma': 'no-cache',
-            'Referer': urlip,
-            'User-Agent': np.random.choice(agents)
-        }
-        html = requests.get(urlip, headers=head_ip).text
-        soup = BeautifulSoup(html, 'html.parser')
-        ips = soup.find_all('tr')
-        ip_list = []
-        for i in range(1, len(ips)):
-            ip_info = ips[i]
-            tds = ip_info.find_all('td')
-            ip_list.append(tds[1].text + ':' + tds[2].text)
-        return ip_list
 
-    def get_random_ip():
-        ip_list = get_ip_list()
-        proxy_list = []
-        for ip in ip_list:
-            proxy_list.append('http://' + ip)
-        proxy_ip = np.random.choice(proxy_list)
-        proxies = {'http': proxy_ip}
-        return proxies
-
-    global user
+    global user, proxies
     if startid == 0:
         return
     i = 0
@@ -182,8 +196,7 @@ def func(startid=0):
         'Referer': ref_url,
         # 'User-Agent':
         # 'Mozilla/5.0(Windows NT 10.0;Win64; x64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/66.0.3359.170 Safari/537.36'
-        'User-Agent': np.random.choice(agents),
-        'proxies': get_random_ip()
+        'User-Agent': np.random.choice(agents)
     }
 
     while 1:
@@ -193,8 +206,9 @@ def func(startid=0):
         url = 'https://api.bilibili.com/x/relation/followings?vmid=' + str(
             startid) + '&pn=' + str(
                 i) + "&ps=20&order=desc&jsonp&callback=__jp5"
+        proxy = np.random.choice(proxies)
         try:
-            r = requests.get(url, headers=head, timeout=10).text
+            r = requests.get(url, headers=head, proxies=proxy, timeout=10).text
             r1 = r.replace('false', 'False')
             r2 = eval(r1.replace('null', 'None'))
             list1 = r2['data']['list']
@@ -208,7 +222,7 @@ def func(startid=0):
             print(e)
     if result != []:
         save(result, startid)
-    time.sleep(5)
+        time.sleep(2)
 
 
 if __name__ == '__main__':
@@ -216,6 +230,7 @@ if __name__ == '__main__':
     cycle = 0
     recordids = 0
     time0 = time.time()
+    get_random_ip()
     while 1:
         cycle += 1
         if recordids == 0:

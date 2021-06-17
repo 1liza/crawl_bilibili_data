@@ -104,11 +104,100 @@ head = {
   time.sleep(3)
   结果：爬取到三百多个数据的时候被禁止
 - 多用几个代理 ip，模拟不同用户访问
-  西拉代理免费ip
-  
+  西拉代理免费 ip
+
+```py
+# get ip from website http://www.xiladaili.com/
+def get_ip_list():
+    urlip = 'http://www.xiladaili.com/'
+    head_ip = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'zh-CN, zh, q=0.9',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Host': 'www.xiladaili.com',
+        'Pragma': 'no-cache',
+        'Referer': urlip,
+        'User-Agent': np.random.choice(agents)
+    }
+    html = requests.get(urlip, headers=head_ip).text
+    with open('html.txt', 'w', encoding='utf-8') as f:
+        f.write(html)
+    f.close()
+    soup = BeautifulSoup(html, 'html.parser')
+    ips = soup.find_all('tr')
+    ip_list = []
+    http_list = []
+    for i in range(1, len(ips)):
+        ip_info = ips[i]
+        tds = ip_info.find_all('td')
+        if (not tds) or len(tds) < 7:
+            continue
+        ip_list.append(tds[0].text)  # '113.237.3.178:9999'
+        http_list.append(tds[2].text)  # 'http' 'https' 'http,https'
+    ip_list = [ip_list, http_list]
+    return ip_list
+
+def get_random_ip():
+    ip_list = get_ip_list()
+    proxies = []
+    for i in range(len(ip_list[0])):
+        if ('HTTPS' in ip_list[1][i]) and ('HTTP' in ip_list[1][i]):
+            proxies.append({'http': 'http://' + ip_list[0][i]})
+            proxies.append({'https': 'https://' + ip_list[0][i]})
+        elif 'HTTP' in ip_list[1][i]:
+            proxies.append({'http': 'http://' + ip_list[0][i]})
+        else:
+            proxies.append({'https': 'https://' + ip_list[0][i]})
+    proxy = np.random.choice(proxies)
+    return proxy
+# some ip is not usable, set timeout
+r = requests.get(url, headers=head, proxies=get_random_ip(), timeout=10).text
+```
+
+结果：获取到第 3000 个后,手动停止
+
 - 申请多个 key 轮流使用，突破 QPS 限制和访问次数限制
 
 TODO：返回数据为 data
 TODO：ip 被封后程序暂停
+TODO:ip 不能用直接删除，不继续随机选取
+
+### 部分问题
+
+**check_hostname requires server_hostname**
+这是urllib3的错误
+```conda install urllib3==1.25.11```
+
+**查看代理是否成功**
+
+```py
+import requests
+
+head = {
+    'Accept':
+    '*/*',
+    'Accept-Encoding':
+    'gzip, deflate',
+    'Accept-Language':
+    'zh-CN, zh, q=0.9',
+    'Cache-Control':
+    'no-cache',
+    'Host':
+    'icanhazip.com',
+    'Pragma':
+    'no-cache',
+    'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36'
+}
+proxy = {'http': '124.70.155.89:808'}
+r = requests.get('http://icanhazip.com', headers=head, proxies=proxy)
+print(r.text)
+
+r = requests.get('http://icanhazip.com', headers=head)
+print(r.text)
+```
 
 ## 使用词云展示 data.db
